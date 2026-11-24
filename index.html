@@ -355,6 +355,23 @@ body.modal-aberto{overflow:hidden}
   .galeria img,.lazer img{transition:none}
 }
 </style>
+<!-- ================= META PIXEL (Itaivan Imobiliária) ================= -->
+<script>
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window, document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '5225246104192816');
+fbq('track', 'PageView');
+fbq('track', 'ViewContent', {content_name: 'Malibu Studios', content_category: 'Pré-lançamento'});
+</script>
+<noscript><img height="1" width="1" style="display:none"
+src="https://www.facebook.com/tr?id=5225246104192816&ev=PageView&noscript=1"/></noscript>
+<!-- ================= /META PIXEL ================= -->
 </head>
 <body>
 
@@ -741,6 +758,20 @@ body.modal-aberto{overflow:hidden}
 const WHATSAPP = "554791847574";   // conferir: veja a nota no topo do arquivo
 const FORM_ENDPOINT = "https://script.google.com/macros/s/AKfycbyk8hD6sqv10h96x3sPNLYtAZ3e0ESEhPQ81MBKXZG9DwYagto84RUjoP0rG8q2iW7o/exec";          // cole aqui a URL do Apps Script: "https://script.google.com/macros/s/.../exec"
 
+/* ---------- RASTREAMENTO META (pixel + dados p/ CAPI) ---------- */
+const PIXEL_ID = "5225246104192816";
+function lerCookie(n){ const m = document.cookie.match(new RegExp("(?:^|; )" + n + "=([^;]*)")); return m ? decodeURIComponent(m[1]) : ""; }
+function novoEventId(){ return "lead_" + Date.now() + "_" + Math.random().toString(36).slice(2,10); }
+function pegarFbc(){
+  const c = lerCookie("_fbc"); if(c) return c;
+  const id = new URLSearchParams(location.search).get("fbclid");
+  return id ? "fb.1." + Date.now() + "." + id : "";
+}
+function rastrear(tipo, evento, params, opts){
+  try{ if(window.fbq) fbq(tipo, evento, params || {}, opts || {}); }catch(e){}
+}
+let formAbertoRastreado = false;
+
 /* =====================================================
    2. LINKS DE WHATSAPP (com captura de UTM)
    ===================================================== */
@@ -863,6 +894,30 @@ form.addEventListener("submit", function(e){
 
   erro.textContent = "";
 
+  /* ---- Pixel: Lead (com correspondência avançada) ---- */
+  const eventId = novoEventId();
+  const foneLimpo = soDigitos(dadosLead.telefone);
+  const partesNome = dadosLead.nome.toLowerCase().split(/\s+/);
+  dadosLead.event_id = eventId;
+  dadosLead.fbp = lerCookie("_fbp");
+  dadosLead.fbc = pegarFbc();
+  dadosLead.user_agent = navigator.userAgent;
+  try{
+    if(window.fbq) fbq("init", PIXEL_ID, {
+      em: dadosLead.email.toLowerCase(),
+      ph: "55" + foneLimpo,
+      fn: partesNome[0] || "",
+      ln: partesNome.length > 1 ? partesNome[partesNome.length-1] : "",
+      country: "br"
+    });
+  }catch(e){}
+  rastrear("track", "Lead", {
+    content_name: "Malibu Studios",
+    content_category: dadosLead.objetivo,
+    objetivo: dadosLead.objetivo,
+    preferencia: dadosLead.tipologia
+  }, {eventID: eventId});
+
   if(FORM_ENDPOINT){
     // Apps Script não aceita JSON vindo de outro domínio (CORS).
     // Envio como formulário simples + no-cors: a linha é gravada normalmente.
@@ -887,6 +942,7 @@ form.addEventListener("submit", function(e){
   const waOk = document.getElementById("waOk");
   waOk.href = linkWa(msg);
   waOk.style.display = "inline-flex";
+  rastrear("track", "Contact", {content_name: "Malibu Studios", canal: "WhatsApp"});
   window.open(linkWa(msg), "_blank", "noopener");
 });
 
@@ -902,6 +958,7 @@ const formMarca = document.createComment("form");
 let focoAnterior = null;
 
 function abrirForm(){
+  if(!formAbertoRastreado){ rastrear("trackCustom", "AbriuFormulario", {content_name: "Malibu Studios"}); formAbertoRastreado = true; }
   focoAnterior = document.activeElement;
   formCasa.insertBefore(formMarca, form);
   modalCorpo.appendChild(form);
